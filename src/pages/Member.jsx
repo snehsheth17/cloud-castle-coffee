@@ -410,32 +410,68 @@ const [billingLoading, setBillingLoading] = useState(false)
 
           {/* BILLING */}
           {panel === 'billing' && (
-            <div>
-              <h2 className="text-base font-bold text-amber-950 mb-4" style={{fontFamily:'Georgia,serif'}}>Billing</h2>
-              <div className="bg-white rounded-xl border border-amber-100 p-4 max-w-md">
-                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Subscription</p>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex justify-between items-center mb-4">
-                  <div>
-                    <p className="text-sm font-semibold text-amber-950">Cloud Castle Monthly</p>
-                    <p className="text-xs text-amber-500">$30.00 / month</p>
-                  </div>
-                  <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">Active</span>
-                </div>
-                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Card on File</p>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">💳</span>
-                    <div>
-                      <p className="text-sm font-medium text-amber-950">•••• •••• •••• 4291</p>
-                      <p className="text-xs text-amber-500">Visa · Exp 09/27</p>
-                    </div>
-                  </div>
-                  <button className="text-xs text-amber-700 border border-amber-200 rounded-lg px-3 py-1 hover:border-amber-400">Update</button>
-                </div>
-                <p className="text-xs text-amber-400 mt-4">Stripe billing portal coming in Phase 2.</p>
+  <div>
+    <h2 className="text-base font-bold text-amber-950 mb-4" style={{fontFamily:'Georgia,serif'}}>Billing</h2>
+    <div className="bg-white rounded-xl border border-amber-100 p-4 max-w-md mb-4">
+      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Subscription</p>
+      {billingLoading ? (
+        <p className="text-sm text-amber-400">Loading billing info...</p>
+      ) : billing?.subscription ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex justify-between items-center mb-4">
+          <div>
+            <p className="text-sm font-semibold text-amber-950">Cloud Castle Monthly</p>
+            <p className="text-xs text-amber-500">
+              $30.00 / month · Renews {new Date(billing.subscription.current_period_end * 1000).toLocaleDateString()}
+            </p>
+            {billing.subscription.cancel_at_period_end && (
+              <p className="text-xs text-red-500 mt-1">Cancels at end of billing period</p>
+            )}
+          </div>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${billing.subscription.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+            {billing.subscription.status}
+          </span>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+          <p className="text-sm text-amber-500">No active subscription found.</p>
+        </div>
+      )}
+
+      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Payment History</p>
+      {billingLoading ? (
+        <p className="text-sm text-amber-400">Loading...</p>
+      ) : billing?.invoices?.length === 0 ? (
+        <p className="text-sm text-amber-400">No payments yet.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {billing?.invoices?.map(inv => (
+            <div key={inv.id} className="flex justify-between items-center py-2 border-b border-amber-50">
+              <div>
+                <p className="text-sm font-semibold text-amber-950">
+                  ${(inv.amount / 100).toFixed(2)}
+                </p>
+                <p className="text-xs text-amber-400">
+                  {new Date(inv.date * 1000).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {inv.status}
+                </span>
+                {inv.pdf && (
+                  <a href={inv.pdf} target="_blank" rel="noreferrer"
+                    className="text-xs text-amber-600 border border-amber-200 rounded-lg px-2 py-0.5 hover:border-amber-400">
+                    PDF
+                  </a>
+                )}
               </div>
             </div>
-          )}
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
           {/* MESSAGE */}
           {panel === 'message' && (
