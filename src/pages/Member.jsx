@@ -39,6 +39,8 @@ export default function Member({ session }) {
   const [accountForm, setAccountForm] = useState({ first_name: '', last_name: '', phone: '' })
   const [msgForm, setMsgForm] = useState({ subject: '', body: '' })
   const [saving, setSaving] = useState(false)
+  const [billing, setBilling] = useState(null)
+const [billingLoading, setBillingLoading] = useState(false)
 
   useEffect(() => {
   fetchProfile()
@@ -70,6 +72,22 @@ export default function Member({ session }) {
       .order('created_at', { ascending: false })
     if (data) setOrders(data)
   }
+
+  async function fetchBilling() {
+  setBillingLoading(true)
+  try {
+    const res = await fetch('/api/get-billing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: session.user.email }),
+    })
+    const data = await res.json()
+    setBilling(data)
+  } catch (err) {
+    console.error('Billing fetch error:', err)
+  }
+  setBillingLoading(false)
+}
 
   function showToast(msg) {
     setToast(msg)
@@ -179,11 +197,11 @@ export default function Member({ session }) {
           ))}
           <p className="text-xs font-semibold text-amber-500 uppercase tracking-widest px-4 pb-1 mt-4">Account</p>
           {navItems.slice(3).map(item => (
-            <button key={item.id} onClick={() => setPanel(item.id)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm text-left transition-all ${panel === item.id ? 'bg-amber-100 text-amber-950 font-semibold border-r-2 border-amber-400' : 'text-amber-700 hover:bg-amber-100'}`}>
-              <span>{item.icon}</span>{item.label}
-            </button>
-          ))}
+  <button key={item.id} onClick={() => { setPanel(item.id); if(item.id === 'billing') fetchBilling() }}
+    className={`flex items-center gap-2 px-4 py-2 text-sm text-left transition-all ${panel === item.id ? 'bg-amber-100 text-amber-950 font-semibold border-r-2 border-amber-400' : 'text-amber-700 hover:bg-amber-100'}`}>
+    <span>{item.icon}</span>{item.label}
+  </button>
+))}
         </div>
 
         {/* Main */}
