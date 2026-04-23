@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 export default function Signup() {
-  const navigate = useNavigate()
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -14,14 +13,39 @@ export default function Signup() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signUp({
+
+    // 1. Create Supabase account
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: { data: { first_name: form.first_name, last_name: form.last_name } }
     })
-    if (error) setError(error.message)
-    else navigate('/member')
-    setLoading(false)
+
+    if (signUpError) {
+      setError(signUpError.message)
+      setLoading(false)
+      return
+    }
+
+    // 2. Create Stripe checkout session
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          userId: data.user.id,
+        }),
+      })
+      const { url, error: stripeError } = await res.json()
+      if (stripeError) throw new Error(stripeError)
+
+      // 3. Redirect to Stripe checkout
+      window.location.href = url
+    } catch (err) {
+      setError('Account created but billing setup failed. Please contact support.')
+      setLoading(false)
+    }
   }
 
   return (
@@ -59,11 +83,22 @@ export default function Signup() {
               className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-400"
               placeholder="Min. 6 characters" />
           </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+            <p className="font-semibold mb-1">☕ What you get:</p>
+            <p>· One coffee or tea of your choice per month</p>
+            <p>· Add-ons available for $1–$2 each</p>
+            <p>· Order ahead up to a day in advance</p>
+            <p>· Cancel anytime</p>
+          </div>
+
           {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <button type="submit" disabled={loading}
             className="w-full bg-amber-900 text-amber-300 font-semibold py-2.5 rounded-lg text-sm hover:bg-amber-800 transition-colors">
-            {loading ? 'Creating account...' : 'Create Account →'}
+            {loading ? 'Setting up your account...' : 'Join & Set Up Billing →'}
           </button>
+          <p className="text-xs text-center text-amber-500">You'll be redirected to Stripe to securely enter your card.</p>
         </form>
         <p className="text-center text-sm text-amber-700 mt-6">
           Already a member? <Link to="/login" className="font-semibold text-amber-900 underline">Sign in</Link>

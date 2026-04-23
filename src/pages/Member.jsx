@@ -40,7 +40,15 @@ export default function Member({ session }) {
   const [msgForm, setMsgForm] = useState({ subject: '', body: '' })
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => { fetchProfile(); fetchOrders() }, [])
+  useEffect(() => {
+  fetchProfile()
+  fetchOrders()
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('subscribed') === 'true') {
+    showToast('Welcome to the club! ☕ Your membership is active.')
+    window.history.replaceState({}, '', '/member')
+  }
+}, [])
 
   async function fetchProfile() {
     const { data } = await supabase
