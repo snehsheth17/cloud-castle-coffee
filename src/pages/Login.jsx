@@ -19,98 +19,79 @@ export default function Login() {
     setLoading(false)
   }
 
+  const inputStyle = {
+    background: '#161b22',
+    border: '1px solid #2a2d35',
+    borderRadius: '14px',
+    padding: '16px',
+    color: 'white',
+    fontSize: '16px',
+    width: '100%',
+    outline: 'none',
+    fontFamily: 'DM Sans, sans-serif',
+  }
+
   return (
-    <div className="min-h-screen flex" style={{background:'#0d1117'}}>
-      {/* Left branding panel */}
-      <div className="hidden lg:flex flex-col justify-between p-12 w-1/2 relative overflow-hidden" style={{background:'linear-gradient(145deg,#0f1923,#0d2137,#0a1628)'}}>
-        <div className="absolute inset-0" style={{background:'radial-gradient(ellipse at 30% 50%, rgba(59,130,246,0.12) 0%, transparent 70%)'}}></div>
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full" style={{background:'rgba(59,130,246,0.06)'}}></div>
-        <div className="absolute top-20 right-10 w-48 h-48 rounded-full" style={{background:'rgba(59,130,246,0.04)'}}></div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">☁</span>
-            <span className="text-white font-bold text-xl tracking-tight" style={{fontFamily:'Georgia,serif'}}>Cloud Castle</span>
-          </div>
-        </div>
-
-        <div className="relative z-10">
-          <h1 className="text-5xl font-bold text-white leading-tight mb-6" style={{fontFamily:'Georgia,serif'}}>
-            Your daily<br/>
-            coffee,<br/>
-            <span className="text-blue-400">elevated.</span>
-          </h1>
-          <p className="text-gray-400 text-lg leading-relaxed max-w-sm">
-            One membership. One perfect drink. Crafted for you, every single morning.
-          </p>
-          <div className="flex gap-6 mt-10">
-            {[{value:'$30',label:'per month'},{value:'6+',label:'drink choices'},{value:'∞',label:'add-ons'}].map(s => (
-              <div key={s.label}>
-                <p className="text-2xl font-bold text-blue-400" style={{fontFamily:'Georgia,serif'}}>{s.value}</p>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative z-10">
-          <p className="text-gray-600 text-sm">© 2025 Cloud Castle Coffee Club</p>
-        </div>
+    <div style={{minHeight:'100vh', background:'#0d1117', display:'flex', flexDirection:'column'}}>
+      {/* Hero top */}
+      <div style={{background:'linear-gradient(160deg,#0f1923,#0d2137)', padding:'48px 24px 40px', textAlign:'center', position:'relative', overflow:'hidden'}}>
+        <div style={{position:'absolute', top:'-60px', right:'-60px', width:'200px', height:'200px', borderRadius:'50%', background:'rgba(59,130,246,0.08)'}}></div>
+        <div style={{position:'absolute', bottom:'-40px', left:'-40px', width:'160px', height:'160px', borderRadius:'50%', background:'rgba(59,130,246,0.06)'}}></div>
+        <div style={{fontSize:'48px', marginBottom:'12px'}}>☁</div>
+        <h1 style={{fontFamily:'Georgia,serif', fontSize:'32px', fontWeight:'700', color:'white', margin:'0 0 8px', lineHeight:'1.2'}}>
+          Cloud Castle
+        </h1>
+        <p style={{color:'#3b82f6', fontSize:'16px', fontWeight:'600', margin:'0 0 12px', letterSpacing:'0.05em'}}>COFFEE CLUB</p>
+        <p style={{color:'#6b7280', fontSize:'14px', margin:'0'}}>Your morning ritual, elevated</p>
       </div>
 
-      {/* Right login panel */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <span className="text-4xl">☁</span>
-            <h1 className="text-2xl font-bold text-white mt-2" style={{fontFamily:'Georgia,serif'}}>Cloud Castle <span className="text-blue-400">Coffee Club</span></h1>
+      {/* Form */}
+      <div style={{flex:1, padding:'32px 24px', maxWidth:'480px', width:'100%', margin:'0 auto'}}>
+        <h2 style={{fontFamily:'Georgia,serif', fontSize:'26px', fontWeight:'700', color:'white', margin:'0 0 6px'}}>Welcome back</h2>
+        <p style={{color:'#6b7280', fontSize:'14px', margin:'0 0 28px'}}>Sign in to your membership</p>
+
+        <form onSubmit={handleLogin} style={{display:'flex', flexDirection:'column', gap:'16px'}}>
+          <div>
+            <label style={{display:'block', fontSize:'11px', fontWeight:'600', color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'8px'}}>Email</label>
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
+              style={inputStyle} placeholder="you@email.com"
+              onFocus={e => e.target.style.borderColor='#3b82f6'}
+              onBlur={e => e.target.style.borderColor='#2a2d35'} />
+          </div>
+          <div>
+            <label style={{display:'block', fontSize:'11px', fontWeight:'600', color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'8px'}}>Password</label>
+            <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
+              style={inputStyle} placeholder="••••••••"
+              onFocus={e => e.target.style.borderColor='#3b82f6'}
+              onBlur={e => e.target.style.borderColor='#2a2d35'} />
           </div>
 
-          <h2 className="text-3xl font-bold text-white mb-2" style={{fontFamily:'Georgia,serif'}}>Welcome back</h2>
-          <p className="text-gray-500 mb-8">Sign in to your membership</p>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Email</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600"
-                style={{background:'#161b22', border:'1px solid #2a2d35'}}
-                onFocus={e => e.target.style.borderColor='#3b82f6'}
-                onBlur={e => e.target.style.borderColor='#2a2d35'}
-                placeholder="you@email.com" />
+          {error && (
+            <div style={{background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:'12px', padding:'14px', color:'#f87171', fontSize:'14px'}}>
+              {error}
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Password</label>
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none transition-all placeholder-gray-600"
-                style={{background:'#161b22', border:'1px solid #2a2d35'}}
-                onFocus={e => e.target.style.borderColor='#3b82f6'}
-                onBlur={e => e.target.style.borderColor='#2a2d35'}
-                placeholder="••••••••" />
-            </div>
-            {error && (
-              <div className="rounded-xl px-4 py-3 text-sm text-red-400" style={{background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)'}}>
-                {error}
-              </div>
-            )}
-            <button type="submit" disabled={loading}
-              className="w-full font-semibold py-3 rounded-xl text-sm text-white transition-all"
-              style={{background:'#3b82f6', fontSize:'15px'}}
-              onMouseEnter={e => e.target.style.background='#2563eb'}
-              onMouseLeave={e => e.target.style.background='#3b82f6'}>
-              {loading ? 'Signing in...' : 'Sign In →'}
-            </button>
-          </form>
+          )}
 
-          <div className="mt-8 pt-8" style={{borderTop:'1px solid #2a2d35'}}>
-            <p className="text-center text-sm text-gray-500">
-              Not a member yet?{' '}
-              <Link to="/signup" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
-                Join the club
-              </Link>
-            </p>
-          </div>
+          <button type="submit" disabled={loading}
+            style={{background:'#3b82f6', color:'white', border:'none', borderRadius:'14px', padding:'18px', fontSize:'16px', fontWeight:'700', fontFamily:'DM Sans,sans-serif', cursor:'pointer', marginTop:'8px', letterSpacing:'0.01em'}}>
+            {loading ? 'Signing in...' : 'Sign In →'}
+          </button>
+        </form>
+
+        <div style={{borderTop:'1px solid #2a2d35', marginTop:'32px', paddingTop:'24px', textAlign:'center'}}>
+          <p style={{color:'#6b7280', fontSize:'14px'}}>
+            Not a member yet?{' '}
+            <Link to="/signup" style={{color:'#3b82f6', fontWeight:'600', textDecoration:'none'}}>Join the club</Link>
+          </p>
+        </div>
+
+        {/* Trust badges */}
+        <div style={{display:'flex', justifyContent:'center', gap:'24px', marginTop:'32px'}}>
+          {['$30 / month', 'Cancel anytime', 'Secure payments'].map(b => (
+            <div key={b} style={{textAlign:'center'}}>
+              <p style={{color:'#4b5563', fontSize:'11px'}}>{b}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

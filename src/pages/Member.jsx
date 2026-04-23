@@ -19,11 +19,19 @@ const MILKS = [
 ]
 const EXTRAS = ['Whip Cream', 'Extra Shot', 'Cold Foam', 'Caramel Drizzle']
 
+const NAV = [
+  { id: 'card', label: 'Home', icon: '🏠' },
+  { id: 'order', label: 'Order', icon: '☕' },
+  { id: 'history', label: 'History', icon: '📋' },
+  { id: 'account', label: 'Account', icon: '👤' },
+]
+
 export default function Member({ session }) {
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [orders, setOrders] = useState([])
   const [panel, setPanel] = useState('card')
+  const [subPanel, setSubPanel] = useState(null)
   const [toast, setToast] = useState('')
   const [drink, setDrink] = useState('Latte')
   const [milk, setMilk] = useState(MILKS[0])
@@ -43,14 +51,17 @@ export default function Member({ session }) {
     fetchOrders()
     const params = new URLSearchParams(window.location.search)
     if (params.get('subscribed') === 'true') {
-      showToast('Welcome to the club! ☕ Your membership is active.')
+      showToast('Welcome to the club! ☕')
       window.history.replaceState({}, '', '/member')
     }
   }, [])
 
   async function fetchProfile() {
     const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-    if (data) { setProfile(data); setAccountForm({ first_name: data.first_name || '', last_name: data.last_name || '', phone: data.phone || '' }) }
+    if (data) {
+      setProfile(data)
+      setAccountForm({ first_name: data.first_name || '', last_name: data.last_name || '', phone: data.phone || '' })
+    }
   }
 
   async function fetchOrders() {
@@ -88,8 +99,9 @@ export default function Member({ session }) {
     else {
       showToast('Order placed! ☕')
       fetchOrders()
-      setDrink('Latte'); setMilk(MILKS[0]); setAddons([]); setIsPremium(false)
-      setScheduleType('asap'); setSchedDate(''); setSchedTime('08:00'); setPanel('card')
+      setDrink('Latte'); setMilk(MILKS[0]); setAddons([])
+      setIsPremium(false); setScheduleType('asap'); setSchedDate(''); setSchedTime('08:00')
+      setPanel('card')
     }
   }
 
@@ -104,7 +116,7 @@ export default function Member({ session }) {
   async function sendMessage() {
     const { error } = await supabase.from('messages').insert({ member_id: session.user.id, subject: msgForm.subject, body: msgForm.body })
     if (error) showToast('Error sending.')
-    else { showToast('Message sent!'); setMsgForm({ subject: '', body: '' }) }
+    else { showToast('Message sent! ✉️'); setMsgForm({ subject: '', body: '' }) }
   }
 
   async function signOut() { await supabase.auth.signOut(); navigate('/login') }
@@ -115,345 +127,373 @@ export default function Member({ session }) {
   const thisMonth = orders.filter(o => new Date(o.created_at).getMonth() === new Date().getMonth()).length
   const totalSpend = orders.reduce((s, o) => s + Number(o.total_addons), 0).toFixed(2)
 
-  const navItems = [
-    { id: 'card', label: 'My Card', icon: '☕' },
-    { id: 'order', label: 'Order Now', icon: '🧾' },
-    { id: 'history', label: 'Order History', icon: '📋' },
-    { id: 'account', label: 'My Details', icon: '👤' },
-    { id: 'billing', label: 'Billing', icon: '💳' },
-    { id: 'message', label: 'Message Us', icon: '✉️' },
-  ]
-
-  // shared input style
-  const inp = "w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 placeholder-gray-500"
+  // Styles
+  const card = { background:'#1a1d24', border:'1px solid #2a2d35', borderRadius:'16px', padding:'16px', marginBottom:'12px' }
+  const inp = { background:'#111318', border:'1px solid #2a2d35', borderRadius:'12px', padding:'14px', color:'white', fontSize:'16px', width:'100%', outline:'none', fontFamily:'DM Sans,sans-serif', boxSizing:'border-box' }
+  const chipBase = { borderRadius:'100px', padding:'8px 16px', fontSize:'13px', fontWeight:'600', border:'1px solid', cursor:'pointer', fontFamily:'DM Sans,sans-serif', display:'inline-block' }
+  const chipOn = { ...chipBase, background:'#3b82f6', color:'white', borderColor:'#3b82f6' }
+  const chipOff = { ...chipBase, background:'transparent', color:'#9ca3af', borderColor:'#374151' }
+  const btnPrimary = { background:'#3b82f6', color:'white', border:'none', borderRadius:'14px', padding:'16px', fontSize:'16px', fontWeight:'700', fontFamily:'DM Sans,sans-serif', cursor:'pointer', width:'100%' }
+  const sectionLabel = { fontSize:'11px', fontWeight:'600', color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'10px', display:'block' }
 
   return (
-    <div className="flex flex-col h-screen" style={{background:'#111318'}}>
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-6 h-14 flex-shrink-0" style={{background:'#1a1d24', borderBottom:'1px solid #2a2d35'}}>
-        <span className="font-bold text-lg text-white" style={{fontFamily:'Georgia,serif'}}>☁ <span className="text-blue-400">Cloud Castle</span> <span className="text-gray-400 font-normal text-sm">Coffee Club</span></span>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs">{initials}</div>
-          <button onClick={signOut} className="text-gray-500 text-xs hover:text-gray-300 transition-colors">Sign out</button>
+    <div style={{minHeight:'100vh', background:'#0d1117', display:'flex', flexDirection:'column', maxWidth:'600px', margin:'0 auto'}}>
+
+      {/* Top nav */}
+      <div style={{background:'#1a1d24', borderBottom:'1px solid #2a2d35', padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50}}>
+        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+          <span style={{fontSize:'22px'}}>☁</span>
+          <span style={{fontFamily:'Georgia,serif', fontWeight:'700', color:'white', fontSize:'18px'}}>Cloud Castle <span style={{color:'#3b82f6'}}>CC</span></span>
         </div>
-      </nav>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-48 flex flex-col py-4 gap-1 flex-shrink-0" style={{background:'#1a1d24', borderRight:'1px solid #2a2d35'}}>
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest px-4 pb-1">My Club</p>
-          {navItems.slice(0,3).map(item => (
-            <button key={item.id} onClick={() => setPanel(item.id)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm text-left transition-all ${panel === item.id ? 'text-white font-semibold border-r-2 border-blue-500' : 'text-gray-500 hover:text-gray-300'}`}
-              style={panel === item.id ? {background:'rgba(59,130,246,0.1)'} : {}}>
-              <span>{item.icon}</span>{item.label}
-            </button>
-          ))}
-          <p className="text-xs font-semibold text-gray-600 uppercase tracking-widest px-4 pb-1 mt-4">Account</p>
-          {navItems.slice(3).map(item => (
-            <button key={item.id} onClick={() => { setPanel(item.id); if(item.id === 'billing') fetchBilling() }}
-              className={`flex items-center gap-2 px-4 py-2 text-sm text-left transition-all ${panel === item.id ? 'text-white font-semibold border-r-2 border-blue-500' : 'text-gray-500 hover:text-gray-300'}`}
-              style={panel === item.id ? {background:'rgba(59,130,246,0.1)'} : {}}>
-              <span>{item.icon}</span>{item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Main */}
-        <div className="flex-1 overflow-y-auto p-6" style={{background:'#111318'}}>
-
-          {/* MY CARD */}
-          {panel === 'card' && (
-            <div>
-              <div className="rounded-2xl p-6 mb-6 max-w-sm relative overflow-hidden" style={{background:'linear-gradient(135deg,#1e3a5f,#1a237e,#0d47a1)'}}>
-                <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-20" style={{background:'#60a5fa'}}></div>
-                <p className="text-blue-300 text-xs font-semibold tracking-widest mb-4" style={{fontFamily:'Georgia,serif'}}>☁ CLOUD CASTLE COFFEE CLUB</p>
-                <p className="text-white text-xl font-bold mb-1" style={{fontFamily:'Georgia,serif'}}>{fullName || 'Member'}</p>
-                <div className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-blue-300 text-xs font-semibold uppercase tracking-widest mb-4" style={{background:'rgba(96,165,250,0.15)', border:'1px solid rgba(96,165,250,0.3)'}}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                  {profile?.status || 'Active'} Member
-                </div>
-                <div className="flex justify-between items-end">
-                  <div><p className="text-xs uppercase tracking-wide mb-1" style={{color:'rgba(255,255,255,0.4)'}}>Member Since</p><p className="text-white text-sm font-medium">{joinDate}</p></div>
-                  <div><p className="text-xs uppercase tracking-wide mb-1" style={{color:'rgba(255,255,255,0.4)'}}>Plan</p><p className="text-white text-sm font-medium">$30 / mo</p></div>
-                  <div className="bg-blue-500 text-white rounded-full px-3 py-1 text-xs font-bold">{orders.length} Orders</div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mb-6">
-                {[
-                  { label: 'This Month', value: thisMonth, sub: 'orders placed' },
-                  { label: 'Add-on Spend', value: `$${totalSpend}`, sub: 'total upgrades' },
-                  { label: 'Next Billing', value: 'May 14', sub: '$30.00' },
-                ].map(s => (
-                  <div key={s.label} className="flex-1 rounded-xl p-3" style={{background:'#1a1d24', border:'1px solid #2a2d35'}}>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{s.label}</p>
-                    <p className="text-2xl font-bold text-white" style={{fontFamily:'Georgia,serif'}}>{s.value}</p>
-                    <p className="text-xs text-gray-600">{s.sub}</p>
-                  </div>
-                ))}
-              </div>
-
-              <h2 className="text-base font-bold text-white mb-3" style={{fontFamily:'Georgia,serif'}}>Recent Activity</h2>
-              {orders.slice(0,3).length === 0 && <p className="text-sm text-gray-500">No orders yet — place your first one!</p>}
-              <div className="flex flex-col gap-2">
-                {orders.slice(0,3).map(o => (
-                  <div key={o.id} className="rounded-xl p-3 flex justify-between items-center" style={{background:'#1a1d24', border:'1px solid #2a2d35'}}>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{DRINKS.find(d=>d.name===o.drink)?.emoji} {o.drink}</p>
-                      <p className="text-xs text-gray-500">{o.milk}{o.addons?.length ? ' · ' + o.addons.join(', ') : ''}</p>
-                      <p className="text-xs text-gray-600 mt-1">{new Date(o.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-white">${Number(o.total_addons).toFixed(2)}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${o.status === 'completed' ? 'bg-green-900 text-green-400' : 'bg-blue-900 text-blue-400'}`}>{o.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ORDER NOW */}
-          {panel === 'order' && (
-            <div>
-              <h2 className="text-base font-bold text-white mb-4" style={{fontFamily:'Georgia,serif'}}>Build Your Drink</h2>
-              <div className="rounded-xl p-4" style={{background:'#1a1d24', border:'1px solid #2a2d35'}}>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Choose Your Drink</p>
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {DRINKS.map(d => (
-                    <button key={d.name} onClick={() => setDrink(d.name)}
-                      className="rounded-xl p-3 text-center transition-all"
-                      style={drink === d.name ? {background:'rgba(59,130,246,0.15)', border:'1.5px solid #3b82f6'} : {background:'#111318', border:'1.5px solid #2a2d35'}}>
-                      <div className="text-2xl mb-1">{d.emoji}</div>
-                      <div className="text-xs font-semibold text-white">{d.name}</div>
-                      <div className="text-xs text-gray-500">{d.desc}</div>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between rounded-xl p-3 mb-4" style={{background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)'}}>
-                  <div>
-                    <p className="text-sm font-semibold text-blue-400">✨ Premium Upgrade</p>
-                    <p className="text-xs text-gray-500">Specialty syrups, artisan toppings — +$2</p>
-                  </div>
-                  <button onClick={() => setIsPremium(!isPremium)}
-                    className="w-10 h-6 rounded-full transition-all relative flex-shrink-0"
-                    style={{background: isPremium ? '#3b82f6' : '#374151'}}>
-                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${isPremium ? 'left-4' : 'left-0.5'}`}></span>
-                  </button>
-                </div>
-
-                {[
-                  { title: 'Flavors', items: FLAVORS, isAddon: true },
-                ].map(section => (
-                  <div key={section.title} className="mb-4">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{section.title}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {section.items.map(f => (
-                        <button key={f} onClick={() => toggleAddon(f)}
-                          className="rounded-full px-3 py-1 text-xs transition-all"
-                          style={addons.includes(f) ? {background:'#3b82f6', color:'white', border:'1px solid #3b82f6'} : {background:'transparent', color:'#9ca3af', border:'1px solid #374151'}}>
-                          {f} <span className="opacity-60">+$1</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Milk Type</p>
-                  <div className="flex flex-wrap gap-2">
-                    {MILKS.map(m => (
-                      <button key={m.name} onClick={() => setMilk(m)}
-                        className="rounded-full px-3 py-1 text-xs transition-all"
-                        style={milk.name === m.name ? {background:'#3b82f6', color:'white', border:'1px solid #3b82f6'} : {background:'transparent', color:'#9ca3af', border:'1px solid #374151'}}>
-                        {m.name} {m.price > 0 && <span className="opacity-60">+$1</span>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Toppings & Extras</p>
-                  <div className="flex flex-wrap gap-2">
-                    {EXTRAS.map(e => (
-                      <button key={e} onClick={() => toggleAddon(e)}
-                        className="rounded-full px-3 py-1 text-xs transition-all"
-                        style={addons.includes(e) ? {background:'#3b82f6', color:'white', border:'1px solid #3b82f6'} : {background:'transparent', color:'#9ca3af', border:'1px solid #374151'}}>
-                        {e} <span className="opacity-60">+$1</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{borderTop:'1px solid #2a2d35', marginBottom:'1rem', marginTop:'1rem'}}></div>
-
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pickup Timing</p>
-                <div className="flex gap-2 mb-4 flex-wrap items-center">
-                  {['asap', 'schedule'].map(t => (
-                    <button key={t} onClick={() => setScheduleType(t)}
-                      className="rounded-full px-3 py-1 text-xs transition-all"
-                      style={scheduleType === t ? {background:'#3b82f6', color:'white', border:'1px solid #3b82f6'} : {background:'transparent', color:'#9ca3af', border:'1px solid #374151'}}>
-                      {t === 'asap' ? 'ASAP' : 'Schedule'}
-                    </button>
-                  ))}
-                  {scheduleType === 'schedule' && <>
-                    <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
-                      className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500" />
-                    <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
-                      className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-blue-500" />
-                  </>}
-                </div>
-
-                <div className="rounded-xl p-3 mb-4" style={{background:'#111318', border:'1px solid #2a2d35'}}>
-                  <div className="flex justify-between text-sm text-gray-400 mb-1"><span>☕ {drink}</span><span>Included</span></div>
-                  {milk.price > 0 && <div className="flex justify-between text-sm text-gray-400 mb-1"><span>{milk.name}</span><span>+$1.00</span></div>}
-                  {addons.map(a => <div key={a} className="flex justify-between text-sm text-gray-400 mb-1"><span>{a}</span><span>+$1.00</span></div>)}
-                  {isPremium && <div className="flex justify-between text-sm text-gray-400 mb-1"><span>✨ Premium</span><span>+$2.00</span></div>}
-                  <div className="flex justify-between text-sm font-bold text-white pt-2 mt-2" style={{borderTop:'1px solid #2a2d35'}}><span>Total today</span><span>${calcTotal().toFixed(2)}</span></div>
-                </div>
-
-                <button onClick={placeOrder} className="w-full font-semibold py-3 rounded-xl text-sm text-white transition-colors" style={{background:'#3b82f6'}}>
-                  Place Order →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ORDER HISTORY */}
-          {panel === 'history' && (
-            <div>
-              <h2 className="text-base font-bold text-white mb-4" style={{fontFamily:'Georgia,serif'}}>Order History</h2>
-              {orders.length === 0 && <p className="text-sm text-gray-500">No orders yet.</p>}
-              <div className="flex flex-col gap-2">
-                {orders.slice(0,10).map(o => (
-                  <div key={o.id} className="rounded-xl p-3 flex justify-between items-center" style={{background:'#1a1d24', border:'1px solid #2a2d35'}}>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{DRINKS.find(d=>d.name===o.drink)?.emoji} {o.drink}</p>
-                      <p className="text-xs text-gray-500">{o.milk}{o.addons?.length ? ' · ' + o.addons.join(', ') : ''}{o.is_premium ? ' · ✨ Premium' : ''}</p>
-                      <p className="text-xs text-gray-600 mt-1">{new Date(o.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-white">${Number(o.total_addons).toFixed(2)}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${o.status === 'completed' ? 'bg-green-900 text-green-400' : 'bg-blue-900 text-blue-400'}`}>{o.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ACCOUNT */}
-          {panel === 'account' && (
-            <div>
-              <h2 className="text-base font-bold text-white mb-4" style={{fontFamily:'Georgia,serif'}}>My Details</h2>
-              <div className="rounded-xl p-4 max-w-md" style={{background:'#1a1d24', border:'1px solid #2a2d35'}}>
-                <div className="flex gap-3 mb-3">
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">First Name</label>
-                    <input value={accountForm.first_name} onChange={e => setAccountForm({...accountForm, first_name: e.target.value})} className={inp} />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Last Name</label>
-                    <input value={accountForm.last_name} onChange={e => setAccountForm({...accountForm, last_name: e.target.value})} className={inp} />
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Email</label>
-                  <input value={session.user.email} disabled className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-600 outline-none" />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Phone</label>
-                  <input value={accountForm.phone} onChange={e => setAccountForm({...accountForm, phone: e.target.value})} className={inp} placeholder="(818) 555-0000" />
-                </div>
-                <button onClick={saveAccount} disabled={saving}
-                  className="font-semibold px-6 py-2 rounded-lg text-sm text-white transition-colors" style={{background:'#3b82f6'}}>
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* BILLING */}
-          {panel === 'billing' && (
-            <div>
-              <h2 className="text-base font-bold text-white mb-4" style={{fontFamily:'Georgia,serif'}}>Billing</h2>
-              <div className="rounded-xl p-4 max-w-md mb-4" style={{background:'#1a1d24', border:'1px solid #2a2d35'}}>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Subscription</p>
-                {billingLoading ? (
-                  <p className="text-sm text-gray-500">Loading billing info...</p>
-                ) : billing?.subscription ? (
-                  <div className="rounded-xl p-3 flex justify-between items-center mb-4" style={{background:'#111318', border:'1px solid #2a2d35'}}>
-                    <div>
-                      <p className="text-sm font-semibold text-white">Cloud Castle Monthly</p>
-                      <p className="text-xs text-gray-500">$30.00 / month · Renews {new Date(billing.subscription.current_period_end * 1000).toLocaleDateString()}</p>
-                      {billing.subscription.cancel_at_period_end && <p className="text-xs text-red-400 mt-1">Cancels at end of billing period</p>}
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-900 text-green-400">{billing.subscription.status}</span>
-                  </div>
-                ) : (
-                  <div className="rounded-xl p-3 mb-4" style={{background:'#111318', border:'1px solid #2a2d35'}}>
-                    <p className="text-sm text-gray-500">No active subscription found.</p>
-                  </div>
-                )}
-
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Payment History</p>
-                {billingLoading ? (
-                  <p className="text-sm text-gray-500">Loading...</p>
-                ) : billing?.invoices?.length === 0 ? (
-                  <p className="text-sm text-gray-500">No payments yet.</p>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    {billing?.invoices?.map(inv => (
-                      <div key={inv.id} className="flex justify-between items-center py-2" style={{borderBottom:'1px solid #2a2d35'}}>
-                        <div>
-                          <p className="text-sm font-semibold text-white">${(inv.amount / 100).toFixed(2)}</p>
-                          <p className="text-xs text-gray-600">{new Date(inv.date * 1000).toLocaleDateString()}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${inv.status === 'paid' ? 'bg-green-900 text-green-400' : 'bg-blue-900 text-blue-400'}`}>{inv.status}</span>
-                          {inv.pdf && (
-                            <a href={inv.pdf} target="_blank" rel="noreferrer"
-                              className="text-xs text-blue-400 border border-gray-700 rounded-lg px-2 py-0.5 hover:border-blue-500 transition-colors">PDF</a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* MESSAGE */}
-          {panel === 'message' && (
-            <div>
-              <h2 className="text-base font-bold text-white mb-4" style={{fontFamily:'Georgia,serif'}}>Message the Team</h2>
-              <div className="rounded-xl p-4 max-w-md" style={{background:'#1a1d24', border:'1px solid #2a2d35'}}>
-                <div className="mb-3">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Subject</label>
-                  <input value={msgForm.subject} onChange={e => setMsgForm({...msgForm, subject: e.target.value})} className={inp} placeholder="e.g. Question about my order" />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Message</label>
-                  <textarea value={msgForm.body} onChange={e => setMsgForm({...msgForm, body: e.target.value})}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 resize-none h-24 placeholder-gray-500"
-                    placeholder="Tell us what's on your mind..." />
-                </div>
-                <button onClick={sendMessage}
-                  className="font-semibold px-6 py-2 rounded-lg text-sm text-white transition-colors" style={{background:'#3b82f6'}}>
-                  Send Message
-                </button>
-              </div>
-            </div>
-          )}
-
+        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+          <div style={{width:'34px', height:'34px', borderRadius:'50%', background:'#3b82f6', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:'700', fontSize:'13px'}}>{initials}</div>
+          <button onClick={signOut} style={{background:'none', border:'none', color:'#6b7280', fontSize:'13px', cursor:'pointer', fontFamily:'DM Sans,sans-serif'}}>Sign out</button>
         </div>
       </div>
 
+      {/* Content */}
+      <div style={{flex:1, padding:'20px 20px 100px', overflowY:'auto'}}>
+
+        {/* HOME / MY CARD */}
+        {panel === 'card' && (
+          <div>
+            {/* Membership card */}
+            <div style={{background:'linear-gradient(135deg,#1e3a5f,#1a237e,#0d47a1)', borderRadius:'20px', padding:'24px', marginBottom:'20px', position:'relative', overflow:'hidden'}}>
+              <div style={{position:'absolute', top:'-30px', right:'-30px', width:'120px', height:'120px', borderRadius:'50%', background:'rgba(96,165,250,0.15)'}}></div>
+              <p style={{color:'#93c5fd', fontSize:'11px', fontWeight:'600', letterSpacing:'0.1em', marginBottom:'16px'}}>☁ CLOUD CASTLE COFFEE CLUB</p>
+              <p style={{fontFamily:'Georgia,serif', fontSize:'24px', fontWeight:'700', color:'white', margin:'0 0 8px'}}>{fullName || 'Member'}</p>
+              <div style={{display:'inline-flex', alignItems:'center', gap:'6px', background:'rgba(96,165,250,0.15)', border:'1px solid rgba(96,165,250,0.3)', borderRadius:'100px', padding:'4px 12px', marginBottom:'20px'}}>
+                <div style={{width:'6px', height:'6px', borderRadius:'50%', background:'#60a5fa'}}></div>
+                <span style={{color:'#93c5fd', fontSize:'11px', fontWeight:'600', textTransform:'uppercase', letterSpacing:'0.06em'}}>{profile?.status || 'Active'} Member</span>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end'}}>
+                <div>
+                  <p style={{color:'rgba(255,255,255,0.4)', fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'2px'}}>Since</p>
+                  <p style={{color:'white', fontSize:'13px', fontWeight:'500'}}>{joinDate}</p>
+                </div>
+                <div>
+                  <p style={{color:'rgba(255,255,255,0.4)', fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'2px'}}>Plan</p>
+                  <p style={{color:'white', fontSize:'13px', fontWeight:'500'}}>$30 / mo</p>
+                </div>
+                <div style={{background:'#3b82f6', color:'white', borderRadius:'100px', padding:'6px 14px', fontSize:'12px', fontWeight:'700'}}>{orders.length} Orders</div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'10px', marginBottom:'20px'}}>
+              {[
+                { label: 'This Month', value: thisMonth, sub: 'orders' },
+                { label: 'Add-ons', value: `$${totalSpend}`, sub: 'spent' },
+                { label: 'Next Bill', value: 'May 14', sub: '$30.00' },
+              ].map(s => (
+                <div key={s.label} style={{...card, marginBottom:0, textAlign:'center', padding:'14px 10px'}}>
+                  <p style={{fontSize:'10px', color:'#6b7280', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'4px'}}>{s.label}</p>
+                  <p style={{fontFamily:'Georgia,serif', fontSize:'20px', fontWeight:'700', color:'white', marginBottom:'2px'}}>{s.value}</p>
+                  <p style={{fontSize:'11px', color:'#4b5563'}}>{s.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick order CTA */}
+            <button onClick={() => setPanel('order')} style={{...btnPrimary, marginBottom:'20px', fontSize:'15px', padding:'18px'}}>
+              ☕ Place an Order
+            </button>
+
+            {/* Recent activity */}
+            <span style={sectionLabel}>Recent Activity</span>
+            {orders.slice(0,5).length === 0 && <p style={{color:'#6b7280', fontSize:'14px'}}>No orders yet — place your first one!</p>}
+            {orders.slice(0,5).map(o => (
+              <div key={o.id} style={{...card, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <div>
+                  <p style={{color:'white', fontSize:'14px', fontWeight:'600', marginBottom:'3px'}}>{DRINKS.find(d=>d.name===o.drink)?.emoji} {o.drink}</p>
+                  <p style={{color:'#6b7280', fontSize:'12px', marginBottom:'3px'}}>{o.milk}{o.addons?.length ? ' · ' + o.addons.join(', ') : ''}</p>
+                  <p style={{color:'#4b5563', fontSize:'11px'}}>{new Date(o.created_at).toLocaleDateString()}</p>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <p style={{color:'white', fontSize:'14px', fontWeight:'700', marginBottom:'4px'}}>${Number(o.total_addons).toFixed(2)}</p>
+                  <span style={{fontSize:'11px', padding:'3px 10px', borderRadius:'100px', fontWeight:'600', background: o.status==='completed' ? '#052e16' : '#1e3a5f', color: o.status==='completed' ? '#4ade80' : '#93c5fd'}}>{o.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ORDER */}
+        {panel === 'order' && (
+          <div>
+            <h2 style={{fontFamily:'Georgia,serif', fontSize:'24px', fontWeight:'700', color:'white', marginBottom:'20px'}}>Build Your Drink</h2>
+
+            <div style={card}>
+              <span style={sectionLabel}>Choose Your Drink</span>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'20px'}}>
+                {DRINKS.map(d => (
+                  <button key={d.name} onClick={() => setDrink(d.name)}
+                    style={{background: drink===d.name ? 'rgba(59,130,246,0.15)' : '#111318', border: drink===d.name ? '1.5px solid #3b82f6' : '1.5px solid #2a2d35', borderRadius:'14px', padding:'14px', textAlign:'center', cursor:'pointer', transition:'all 0.15s'}}>
+                    <div style={{fontSize:'28px', marginBottom:'6px'}}>{d.emoji}</div>
+                    <div style={{color:'white', fontSize:'13px', fontWeight:'600'}}>{d.name}</div>
+                    <div style={{color:'#6b7280', fontSize:'11px'}}>{d.desc}</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Premium toggle */}
+              <div style={{background:'rgba(59,130,246,0.06)', border:'1px solid rgba(59,130,246,0.2)', borderRadius:'14px', padding:'14px', display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px'}}>
+                <div>
+                  <p style={{color:'#93c5fd', fontSize:'14px', fontWeight:'600', marginBottom:'3px'}}>✨ Premium Upgrade</p>
+                  <p style={{color:'#6b7280', fontSize:'12px'}}>Specialty syrups & artisan toppings — +$2</p>
+                </div>
+                <button onClick={() => setIsPremium(!isPremium)}
+                  style={{width:'44px', height:'26px', borderRadius:'100px', background: isPremium ? '#3b82f6' : '#374151', border:'none', cursor:'pointer', position:'relative', flexShrink:0, transition:'background 0.2s'}}>
+                  <span style={{position:'absolute', top:'3px', width:'20px', height:'20px', background:'white', borderRadius:'50%', transition:'all 0.2s', left: isPremium ? '21px' : '3px'}}></span>
+                </button>
+              </div>
+
+              <span style={sectionLabel}>Flavors</span>
+              <div style={{display:'flex', flexWrap:'wrap', gap:'8px', marginBottom:'20px'}}>
+                {FLAVORS.map(f => (
+                  <button key={f} onClick={() => toggleAddon(f)} style={addons.includes(f) ? chipOn : chipOff}>
+                    {f} <span style={{opacity:0.6, fontSize:'11px'}}>+$1</span>
+                  </button>
+                ))}
+              </div>
+
+              <span style={sectionLabel}>Milk Type</span>
+              <div style={{display:'flex', flexWrap:'wrap', gap:'8px', marginBottom:'20px'}}>
+                {MILKS.map(m => (
+                  <button key={m.name} onClick={() => setMilk(m)} style={milk.name===m.name ? chipOn : chipOff}>
+                    {m.name} {m.price > 0 && <span style={{opacity:0.6, fontSize:'11px'}}>+$1</span>}
+                  </button>
+                ))}
+              </div>
+
+              <span style={sectionLabel}>Toppings & Extras</span>
+              <div style={{display:'flex', flexWrap:'wrap', gap:'8px', marginBottom:'20px'}}>
+                {EXTRAS.map(e => (
+                  <button key={e} onClick={() => toggleAddon(e)} style={addons.includes(e) ? chipOn : chipOff}>
+                    {e} <span style={{opacity:0.6, fontSize:'11px'}}>+$1</span>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{borderTop:'1px solid #2a2d35', paddingTop:'16px', marginBottom:'16px'}}>
+                <span style={sectionLabel}>Pickup Timing</span>
+                <div style={{display:'flex', gap:'8px', flexWrap:'wrap', marginBottom:'12px'}}>
+                  {['asap','schedule'].map(t => (
+                    <button key={t} onClick={() => setScheduleType(t)} style={scheduleType===t ? chipOn : chipOff}>
+                      {t === 'asap' ? '⚡ ASAP' : '📅 Schedule'}
+                    </button>
+                  ))}
+                </div>
+                {scheduleType === 'schedule' && (
+                  <div style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
+                    <input type="date" value={schedDate} onChange={e => setSchedDate(e.target.value)}
+                      style={{...inp, width:'auto', flex:1, padding:'12px'}} />
+                    <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)}
+                      style={{...inp, width:'auto', flex:1, padding:'12px'}} />
+                  </div>
+                )}
+              </div>
+
+              {/* Summary */}
+              <div style={{background:'#111318', border:'1px solid #2a2d35', borderRadius:'12px', padding:'14px', marginBottom:'16px'}}>
+                <div style={{display:'flex', justifyContent:'space-between', color:'#9ca3af', fontSize:'13px', marginBottom:'6px'}}><span>☕ {drink}</span><span>Included</span></div>
+                {milk.price > 0 && <div style={{display:'flex', justifyContent:'space-between', color:'#9ca3af', fontSize:'13px', marginBottom:'6px'}}><span>{milk.name}</span><span>+$1.00</span></div>}
+                {addons.map(a => <div key={a} style={{display:'flex', justifyContent:'space-between', color:'#9ca3af', fontSize:'13px', marginBottom:'6px'}}><span>{a}</span><span>+$1.00</span></div>)}
+                {isPremium && <div style={{display:'flex', justifyContent:'space-between', color:'#9ca3af', fontSize:'13px', marginBottom:'6px'}}><span>✨ Premium</span><span>+$2.00</span></div>}
+                <div style={{display:'flex', justifyContent:'space-between', color:'white', fontSize:'15px', fontWeight:'700', borderTop:'1px solid #2a2d35', paddingTop:'10px', marginTop:'6px'}}>
+                  <span>Total today</span><span>${calcTotal().toFixed(2)}</span>
+                </div>
+              </div>
+
+              <button onClick={placeOrder} style={btnPrimary}>Place Order →</button>
+            </div>
+          </div>
+        )}
+
+        {/* HISTORY */}
+        {panel === 'history' && (
+          <div>
+            <h2 style={{fontFamily:'Georgia,serif', fontSize:'24px', fontWeight:'700', color:'white', marginBottom:'20px'}}>Order History</h2>
+            {orders.length === 0 && <p style={{color:'#6b7280', fontSize:'14px'}}>No orders yet.</p>}
+            {orders.slice(0,10).map(o => (
+              <div key={o.id} style={{...card, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <div>
+                  <p style={{color:'white', fontSize:'14px', fontWeight:'600', marginBottom:'3px'}}>{DRINKS.find(d=>d.name===o.drink)?.emoji} {o.drink}</p>
+                  <p style={{color:'#6b7280', fontSize:'12px', marginBottom:'3px'}}>{o.milk}{o.addons?.length ? ' · ' + o.addons.join(', ') : ''}{o.is_premium ? ' · ✨' : ''}</p>
+                  <p style={{color:'#4b5563', fontSize:'11px'}}>{new Date(o.created_at).toLocaleDateString()}</p>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <p style={{color:'white', fontSize:'14px', fontWeight:'700', marginBottom:'4px'}}>${Number(o.total_addons).toFixed(2)}</p>
+                  <span style={{fontSize:'11px', padding:'3px 10px', borderRadius:'100px', fontWeight:'600', background: o.status==='completed' ? '#052e16' : '#1e3a5f', color: o.status==='completed' ? '#4ade80' : '#93c5fd'}}>{o.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ACCOUNT */}
+        {panel === 'account' && !subPanel && (
+          <div>
+            <h2 style={{fontFamily:'Georgia,serif', fontSize:'24px', fontWeight:'700', color:'white', marginBottom:'20px'}}>Account</h2>
+
+            {/* Profile summary */}
+            <div style={{...card, display:'flex', alignItems:'center', gap:'14px', marginBottom:'20px'}}>
+              <div style={{width:'52px', height:'52px', borderRadius:'50%', background:'#3b82f6', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:'700', fontSize:'18px', flexShrink:0}}>{initials}</div>
+              <div>
+                <p style={{color:'white', fontSize:'16px', fontWeight:'600', marginBottom:'3px'}}>{fullName}</p>
+                <p style={{color:'#6b7280', fontSize:'13px'}}>{session.user.email}</p>
+              </div>
+            </div>
+
+            {/* Menu items */}
+            {[
+              { label: 'My Details', sub: 'Name, phone number', icon: '👤', id: 'details' },
+              { label: 'Billing', sub: 'Subscription & payment history', icon: '💳', id: 'billing' },
+              { label: 'Message Us', sub: 'Get in touch with our team', icon: '✉️', id: 'message' },
+            ].map(item => (
+              <button key={item.id} onClick={() => { setSubPanel(item.id); if(item.id==='billing') fetchBilling() }}
+                style={{...card, width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', border:'1px solid #2a2d35', textAlign:'left', fontFamily:'DM Sans,sans-serif'}}>
+                <div style={{display:'flex', alignItems:'center', gap:'14px'}}>
+                  <span style={{fontSize:'22px'}}>{item.icon}</span>
+                  <div>
+                    <p style={{color:'white', fontSize:'14px', fontWeight:'600', marginBottom:'2px'}}>{item.label}</p>
+                    <p style={{color:'#6b7280', fontSize:'12px'}}>{item.sub}</p>
+                  </div>
+                </div>
+                <span style={{color:'#4b5563', fontSize:'18px'}}>›</span>
+              </button>
+            ))}
+
+            <button onClick={signOut}
+              style={{width:'100%', background:'transparent', border:'1px solid #2a2d35', borderRadius:'16px', padding:'16px', color:'#ef4444', fontSize:'14px', fontWeight:'600', fontFamily:'DM Sans,sans-serif', cursor:'pointer', marginTop:'8px'}}>
+              Sign Out
+            </button>
+          </div>
+        )}
+
+        {/* ACCOUNT SUB-PANELS */}
+        {panel === 'account' && subPanel && (
+          <div>
+            <button onClick={() => setSubPanel(null)} style={{background:'none', border:'none', color:'#3b82f6', fontSize:'14px', fontWeight:'600', fontFamily:'DM Sans,sans-serif', cursor:'pointer', marginBottom:'20px', padding:'0', display:'flex', alignItems:'center', gap:'6px'}}>
+              ← Back
+            </button>
+
+            {/* MY DETAILS */}
+            {subPanel === 'details' && (
+              <div>
+                <h2 style={{fontFamily:'Georgia,serif', fontSize:'22px', fontWeight:'700', color:'white', marginBottom:'20px'}}>My Details</h2>
+                <div style={card}>
+                  <div style={{display:'flex', gap:'12px', marginBottom:'14px'}}>
+                    <div style={{flex:1}}>
+                      <label style={{...sectionLabel, marginBottom:'8px'}}>First Name</label>
+                      <input value={accountForm.first_name} onChange={e => setAccountForm({...accountForm, first_name: e.target.value})}
+                        style={inp} onFocus={e => e.target.style.borderColor='#3b82f6'} onBlur={e => e.target.style.borderColor='#2a2d35'} />
+                    </div>
+                    <div style={{flex:1}}>
+                      <label style={{...sectionLabel, marginBottom:'8px'}}>Last Name</label>
+                      <input value={accountForm.last_name} onChange={e => setAccountForm({...accountForm, last_name: e.target.value})}
+                        style={inp} onFocus={e => e.target.style.borderColor='#3b82f6'} onBlur={e => e.target.style.borderColor='#2a2d35'} />
+                    </div>
+                  </div>
+                  <div style={{marginBottom:'14px'}}>
+                    <label style={{...sectionLabel, marginBottom:'8px'}}>Email</label>
+                    <input value={session.user.email} disabled style={{...inp, background:'#0d1117', color:'#4b5563', borderColor:'#1f2328'}} />
+                  </div>
+                  <div style={{marginBottom:'20px'}}>
+                    <label style={{...sectionLabel, marginBottom:'8px'}}>Phone</label>
+                    <input value={accountForm.phone} onChange={e => setAccountForm({...accountForm, phone: e.target.value})}
+                      style={inp} placeholder="(818) 555-0000"
+                      onFocus={e => e.target.style.borderColor='#3b82f6'} onBlur={e => e.target.style.borderColor='#2a2d35'} />
+                  </div>
+                  <button onClick={saveAccount} disabled={saving} style={btnPrimary}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* BILLING */}
+            {subPanel === 'billing' && (
+              <div>
+                <h2 style={{fontFamily:'Georgia,serif', fontSize:'22px', fontWeight:'700', color:'white', marginBottom:'20px'}}>Billing</h2>
+                <div style={card}>
+                  <span style={sectionLabel}>Subscription</span>
+                  {billingLoading ? (
+                    <p style={{color:'#6b7280', fontSize:'14px'}}>Loading...</p>
+                  ) : billing?.subscription ? (
+                    <div style={{background:'#111318', border:'1px solid #2a2d35', borderRadius:'12px', padding:'14px', display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
+                      <div>
+                        <p style={{color:'white', fontSize:'14px', fontWeight:'600', marginBottom:'4px'}}>Cloud Castle Monthly</p>
+                        <p style={{color:'#6b7280', fontSize:'12px'}}>$30.00 / month · Renews {new Date(billing.subscription.current_period_end * 1000).toLocaleDateString()}</p>
+                      </div>
+                      <span style={{background:'#052e16', color:'#4ade80', fontSize:'11px', fontWeight:'600', padding:'4px 10px', borderRadius:'100px'}}>{billing.subscription.status}</span>
+                    </div>
+                  ) : (
+                    <p style={{color:'#6b7280', fontSize:'14px', marginBottom:'20px'}}>No active subscription found.</p>
+                  )}
+
+                  <span style={sectionLabel}>Payment History</span>
+                  {billingLoading ? (
+                    <p style={{color:'#6b7280', fontSize:'14px'}}>Loading...</p>
+                  ) : billing?.invoices?.length === 0 ? (
+                    <p style={{color:'#6b7280', fontSize:'14px'}}>No payments yet.</p>
+                  ) : (
+                    billing?.invoices?.map(inv => (
+                      <div key={inv.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:'1px solid #2a2d35'}}>
+                        <div>
+                          <p style={{color:'white', fontSize:'14px', fontWeight:'600', marginBottom:'3px'}}>${(inv.amount/100).toFixed(2)}</p>
+                          <p style={{color:'#6b7280', fontSize:'12px'}}>{new Date(inv.date*1000).toLocaleDateString()}</p>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                          <span style={{background: inv.status==='paid' ? '#052e16' : '#1e3a5f', color: inv.status==='paid' ? '#4ade80' : '#93c5fd', fontSize:'11px', fontWeight:'600', padding:'4px 10px', borderRadius:'100px'}}>{inv.status}</span>
+                          {inv.pdf && <a href={inv.pdf} target="_blank" rel="noreferrer" style={{color:'#3b82f6', fontSize:'12px', textDecoration:'none', border:'1px solid #2a2d35', borderRadius:'8px', padding:'4px 10px'}}>PDF</a>}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* MESSAGE */}
+            {subPanel === 'message' && (
+              <div>
+                <h2 style={{fontFamily:'Georgia,serif', fontSize:'22px', fontWeight:'700', color:'white', marginBottom:'20px'}}>Message the Team</h2>
+                <div style={card}>
+                  <div style={{marginBottom:'14px'}}>
+                    <label style={{...sectionLabel, marginBottom:'8px'}}>Subject</label>
+                    <input value={msgForm.subject} onChange={e => setMsgForm({...msgForm, subject: e.target.value})}
+                      style={inp} placeholder="e.g. Question about my order"
+                      onFocus={e => e.target.style.borderColor='#3b82f6'} onBlur={e => e.target.style.borderColor='#2a2d35'} />
+                  </div>
+                  <div style={{marginBottom:'20px'}}>
+                    <label style={{...sectionLabel, marginBottom:'8px'}}>Message</label>
+                    <textarea value={msgForm.body} onChange={e => setMsgForm({...msgForm, body: e.target.value})}
+                      style={{...inp, height:'120px', resize:'none'}} placeholder="Tell us what's on your mind..." />
+                  </div>
+                  <button onClick={sendMessage} style={btnPrimary}>Send Message</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom tab bar */}
+      <div style={{position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:'600px', background:'#1a1d24', borderTop:'1px solid #2a2d35', display:'flex', zIndex:50}}>
+        {NAV.map(item => (
+          <button key={item.id} onClick={() => { setPanel(item.id); setSubPanel(null) }}
+            style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'12px 8px', background:'none', border:'none', cursor:'pointer', fontFamily:'DM Sans,sans-serif', gap:'4px'}}>
+            <span style={{fontSize:'20px'}}>{item.icon}</span>
+            <span style={{fontSize:'10px', fontWeight:'600', color: panel===item.id ? '#3b82f6' : '#6b7280', textTransform:'uppercase', letterSpacing:'0.05em'}}>{item.label}</span>
+            {panel === item.id && <div style={{width:'4px', height:'4px', borderRadius:'50%', background:'#3b82f6'}}></div>}
+          </button>
+        ))}
+      </div>
+
+      {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 right-6 px-4 py-3 rounded-xl text-sm font-semibold shadow-lg z-50 text-white" style={{background:'#3b82f6'}}>
+        <div style={{position:'fixed', bottom:'80px', left:'50%', transform:'translateX(-50%)', background:'#3b82f6', color:'white', padding:'14px 24px', borderRadius:'100px', fontSize:'14px', fontWeight:'600', zIndex:100, whiteSpace:'nowrap'}}>
           {toast}
         </div>
       )}
